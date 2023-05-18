@@ -104,14 +104,14 @@ pub struct IssueMeta {
 impl StrictSerialize for IssueMeta {}
 impl StrictDeserialize for IssueMeta {}
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug, Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 #[derive(StrictType, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_RGB21)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub struct Allocation(TokenIndex, OwnedFraction);
 
 impl Allocation {
-    pub fn with(index: TokenIndex, fraction: OwnedFraction)-> Allocation{
+    pub fn with(index: TokenIndex, fraction: OwnedFraction) -> Allocation {
         Allocation(index, fraction)
     }
 }

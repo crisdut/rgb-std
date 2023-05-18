@@ -80,7 +80,7 @@ impl Hoard {
             schemata: none!(),
             ifaces: tiny_bmap! {
                 rgb20_id => rgb20,
-                rgb21_id => rgb21,         
+                rgb21_id => rgb21,
             },
             geneses: none!(),
             suppl: none!(),
