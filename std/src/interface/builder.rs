@@ -451,9 +451,15 @@ impl<Seal: ExposedSeal> OperationBuilder<Seal> {
                     }
                 }
             }
-            TypedState::Data(_) => {
-                todo!()
-            }
+            TypedState::Data(state) => match self.data.get_mut(&type_id) {
+                Some(assignments) => {
+                    assignments.insert(seal.into(), state.into())?;
+                }
+                None => {
+                    self.data
+                        .insert(type_id, Confined::with((seal.into(), state)))?;
+                }
+            },
             TypedState::Attachment(_) => {
                 todo!()
             }

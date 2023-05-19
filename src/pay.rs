@@ -188,13 +188,19 @@ pub trait InventoryWallet: Inventory {
             .and_then(|set| set.first())
             .cloned();
         let mut sum_inputs = 0u64;
+        let mut type_state = TypedState::Void;
+
         for (opout, state) in self.state_for_outpoints(contract_id, prev_outputs.iter().copied())? {
             main_builder = main_builder.add_input(opout)?;
             if opout.ty != assignment_id {
                 let seal = output_for_assignment(suppl.as_ref(), opout.ty)?;
                 main_builder = main_builder.add_raw_state(opout.ty, seal, state)?;
             } else if let TypedState::Amount(value) = state {
+                type_state = state;
                 sum_inputs += value;
+            } else if let TypedState::Data(_) = state {
+                type_state = state;
+                sum_inputs += 1;
             }
         }
         // Add change
@@ -209,9 +215,18 @@ pub trait InventoryWallet: Inventory {
                     Ordering::Less => return Err(PayError::InsufficientState),
                     Ordering::Equal => {}
                 }
-                main_builder
-                    .add_raw_state(assignment_id, beneficiary, TypedState::Amount(amt))?
-                    .complete_transition(contract_id)?
+
+                match type_state {
+                    TypedState::Amount(_) => main_builder
+                        .add_raw_state(assignment_id, beneficiary, TypedState::Amount(amt))?
+                        .complete_transition(contract_id)?,
+                    TypedState::Data(_) => main_builder
+                        .add_raw_state(assignment_id, beneficiary, type_state)?
+                        .complete_transition(contract_id)?,
+                    _ => {
+                        todo!("only TypedState::Amount and TypedState::Data is currently supported")
+                    }
+                }
             }
             _ => {
                 todo!("only TypedState::Amount is currently supported")
