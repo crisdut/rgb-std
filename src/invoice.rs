@@ -352,6 +352,13 @@ impl FromStr for RgbInvoice {
             return Err(InvoiceParseError::ContractIdNoIface);
         }
 
+        let assignment = path[next_path_index].clone();
+        let mut assign = None;
+        if !assignment.contains('+') {
+            assign = Some(FieldName::from_str(&assignment)?);
+            next_path_index += 1;
+        }
+
         let mut assignment = path[next_path_index].split('+');
         // TODO: support other state types
         let (beneficiary_str, value) = match (assignment.next(), assignment.next()) {
@@ -410,7 +417,7 @@ impl FromStr for RgbInvoice {
             contract,
             iface,
             operation: None,
-            assignment: None,
+            assignment: assign,
             beneficiary,
             owned_state: value,
             chain,

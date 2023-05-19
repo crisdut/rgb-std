@@ -171,7 +171,7 @@ pub fn rgb20() -> Iface {
                 errors: tiny_bset! {
                     NON_EQUAL_AMOUNTS
                 },
-                default_assignment: Some(fname!("assetOwner")),
+                default_assignment: Some(fname!("beneficiary")),
             },
             tn!("Issue") => TransitionIface {
                 optional: true,

@@ -376,7 +376,7 @@ pub fn rgb21() -> Iface {
                     FRACTION_OVERFLOW,
                     NON_FRACTIONAL_TOKEN
                 },
-                default_assignment: Some(fname!("assetOwner")),
+                default_assignment: Some(fname!("beneficiary")),
             },
             tn!("Engrave") => TransitionIface {
                 optional: true,
