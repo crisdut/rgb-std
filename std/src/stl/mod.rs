@@ -27,7 +27,7 @@ mod chain;
 
 pub use chain::ProofOfReserves;
 pub(self) use error::Error;
-pub use mime::MediaType;
+pub use mime::{MediaRegName, MediaType};
 pub use specs::{
     AssetNaming, Details, DivisibleAssetSpec, Name, Precision, RicardianContract, Ticker, Timestamp,
 };

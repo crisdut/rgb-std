@@ -26,7 +26,8 @@ use strict_types::typesys::SystemBuilder;
 use strict_types::{SemId, TypeLib, TypeSystem};
 
 use super::{
-    DivisibleAssetSpec, Error, MediaType, RicardianContract, Timestamp, LIB_NAME_RGB_CONTRACT,
+    DivisibleAssetSpec, Error, MediaRegName, MediaType, RicardianContract, Timestamp,
+    LIB_NAME_RGB_CONTRACT,
 };
 use crate::stl::ProofOfReserves;
 
@@ -41,6 +42,7 @@ fn _rgb_contract_stl() -> Result<TypeLib, TranslateError> {
         .transpile::<DivisibleAssetSpec>()
         .transpile::<RicardianContract>()
         .transpile::<MediaType>()
+        .transpile::<MediaRegName>()
         .transpile::<ProofOfReserves>()
         .compile(bset! {
             std_stl().to_dependency(),

@@ -162,6 +162,9 @@ pub struct Attachment {
     pub digest: [u8; 32],
 }
 
+impl StrictSerialize for Attachment {}
+impl StrictDeserialize for Attachment {}
+
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 #[derive(StrictType, StrictDumb, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_RGB21, dumb = { AttachmentType::with(0, "dumb") })]
@@ -174,6 +177,9 @@ pub struct AttachmentType {
     pub id: u8,
     pub name: AttachmentName,
 }
+
+impl StrictSerialize for AttachmentType {}
+impl StrictDeserialize for AttachmentType {}
 
 impl AttachmentType {
     pub fn with(id: u8, name: &'static str) -> AttachmentType {
@@ -202,6 +208,9 @@ impl StrictEncode for AttachmentName {
         )
     }
 }
+
+impl StrictSerialize for AttachmentName {}
+impl StrictDeserialize for AttachmentName {}
 
 // TODO: Ensure all constructors filter invalid characters
 impl FromStr for AttachmentName {
@@ -286,12 +295,17 @@ pub enum Error {
 
 fn _rgb21_stl() -> Result<TypeLib, TranslateError> {
     LibBuilder::new(libname!(LIB_NAME_RGB21))
-        .transpile::<IssueMeta>()
-        .transpile::<TokenData>()
-        .transpile::<EngravingData>()
         .transpile::<ItemsCount>()
+        .transpile::<TokenIndex>()
+        .transpile::<OwnedFraction>()
+        .transpile::<IssueMeta>()
         .transpile::<Allocation>()
+        .transpile::<EngravingData>()
+        .transpile::<EmbeddedMedia>()
+        .transpile::<Attachment>()
         .transpile::<AttachmentType>()
+        .transpile::<AttachmentName>()
+        .transpile::<TokenData>()
         .transpile::<Error>()
         .compile(bset! {
             std_stl().to_dependency(),

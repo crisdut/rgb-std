@@ -493,7 +493,7 @@ impl<Seal: ExposedSeal> OperationBuilder<Seal> {
         let mut assignments = Assignments::from_inner(owned_state);
         assignments
             .extend(Assignments::from_inner(owned_state_data).into_inner())
-            .expect("");
+            .expect("same size");
 
         let iface_pair = IfacePair::with(self.iface, self.iimpl);
 

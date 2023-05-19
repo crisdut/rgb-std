@@ -85,6 +85,9 @@ impl StrictEncode for MediaRegName {
     }
 }
 
+impl StrictSerialize for MediaRegName {}
+impl StrictDeserialize for MediaRegName {}
+
 // TODO: Ensure all constructors filter invalid characters
 impl FromStr for MediaRegName {
     type Err = InvalidIdent;
