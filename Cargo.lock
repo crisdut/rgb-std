@@ -940,8 +940,7 @@ dependencies = [
 [[package]]
 name = "strict_types"
 version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7af86f31fce50e8e4635509b6114c71aaa3a37cb3df1b8ea0ab5d5cf58afd688"
+source = "git+https://github.com/crisdut/strict-types/?branch=fix/typelib-id#74106e3554a2af646bf9220dd19396fc0cb1e90c"
 dependencies = [
  "amplify",
  "baid58",
