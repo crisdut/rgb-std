@@ -26,8 +26,7 @@ use strict_types::typesys::SystemBuilder;
 use strict_types::{SemId, TypeLib, TypeSystem};
 
 use crate::stl::{
-    DivisibleAssetSpec, Error, MediaRegName, MediaType, ProofOfReserves, RicardianContract,
-    Timestamp, LIB_NAME_RGB_CONTRACT,
+    DivisibleAssetSpec, Error, ProofOfReserves, RicardianContract, Timestamp, LIB_NAME_RGB_CONTRACT,
 };
 /// Strict types id for the library providing standard data types which may be
 /// used in RGB smart contracts.
@@ -39,8 +38,6 @@ fn _rgb_contract_stl() -> Result<TypeLib, TranslateError> {
         .transpile::<Timestamp>()
         .transpile::<DivisibleAssetSpec>()
         .transpile::<RicardianContract>()
-        .transpile::<MediaType>()
-        .transpile::<MediaRegName>()
         .transpile::<ProofOfReserves>()
         .compile(bset! {
             std_stl().to_dependency(),

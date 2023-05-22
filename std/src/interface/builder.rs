@@ -337,7 +337,7 @@ impl<Seal: ExposedSeal> OperationBuilder<Seal> {
         value: impl StrictSerialize,
     ) -> Result<Self, BuilderError> {
         let name = name.into();
-        let serialized = value.to_strict_serialized::<{ u16::MAX as usize }>()?;
+        let serialized = value.to_strict_serialized::<U16>()?;
 
         // Check value matches type requirements
         let Some(type_id) = self.iimpl.global_state.iter().find(|t| t.name == name).map(|t| t.id) else {

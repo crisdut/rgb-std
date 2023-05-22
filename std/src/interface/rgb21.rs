@@ -147,6 +147,9 @@ pub struct EmbeddedMedia {
     pub data: SmallBlob,
 }
 
+impl StrictSerialize for EmbeddedMedia {}
+impl StrictDeserialize for EmbeddedMedia {}
+
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 #[derive(StrictType, StrictDumb, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_RGB21)]
@@ -158,7 +161,7 @@ pub struct EmbeddedMedia {
 pub struct Attachment {
     #[strict_type(rename = "type")]
     #[cfg_attr(feature = "serde", serde(rename = "type"))]
-    pub ty: MediaType,
+    pub ty: AttachmentType,
     pub digest: [u8; 32],
 }
 
@@ -295,17 +298,12 @@ pub enum Error {
 
 fn _rgb21_stl() -> Result<TypeLib, TranslateError> {
     LibBuilder::new(libname!(LIB_NAME_RGB21))
-        .transpile::<ItemsCount>()
-        .transpile::<TokenIndex>()
-        .transpile::<OwnedFraction>()
         .transpile::<IssueMeta>()
-        .transpile::<Allocation>()
-        .transpile::<EngravingData>()
-        .transpile::<EmbeddedMedia>()
-        .transpile::<Attachment>()
-        .transpile::<AttachmentType>()
-        .transpile::<AttachmentName>()
         .transpile::<TokenData>()
+        .transpile::<EngravingData>()
+        .transpile::<ItemsCount>()
+        .transpile::<Allocation>()
+        .transpile::<AttachmentType>()
         .transpile::<Error>()
         .compile(bset! {
             std_stl().to_dependency(),

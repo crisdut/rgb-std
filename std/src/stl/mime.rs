@@ -30,11 +30,11 @@ use strict_encoding::{
     InvalidIdent, StrictDeserialize, StrictDumb, StrictEncode, StrictSerialize, TypedWrite,
 };
 
-use super::LIB_NAME_RGB_CONTRACT;
+use crate::interface::LIB_NAME_RGB21;
 
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Hash)]
 #[derive(StrictType, StrictEncode, StrictDecode)]
-#[strict_type(lib = LIB_NAME_RGB_CONTRACT)]
+#[strict_type(lib = LIB_NAME_RGB21)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(crate = "serde_crate"))]
 pub struct MediaType {
     #[strict_type(rename = "type")]
@@ -70,7 +70,7 @@ impl MediaType {
 #[derive(Wrapper, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, From)]
 #[wrapper(Deref, Display)]
 #[derive(StrictType, StrictDumb, StrictDecode)]
-#[strict_type(lib = LIB_NAME_RGB_CONTRACT, dumb = { MediaRegName::from("dumb") })]
+#[strict_type(lib = LIB_NAME_RGB21, dumb = { MediaRegName::from("dumb") })]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
@@ -121,7 +121,7 @@ impl Debug for MediaRegName {
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Display)]
 #[derive(StrictDumb, StrictType, StrictEncode, StrictDecode)]
-#[strict_type(lib = LIB_NAME_RGB_CONTRACT, tags = repr, into_u8, try_from_u8)]
+#[strict_type(lib = LIB_NAME_RGB21, tags = repr, into_u8, try_from_u8)]
 #[display(inner)]
 #[repr(u8)]
 #[allow(non_camel_case_types)]
