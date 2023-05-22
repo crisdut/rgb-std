@@ -113,3 +113,21 @@ pub enum AppDeriveIndex {
     Episodic = 40,
     Seldom = 50,
 }
+
+impl AppDeriveIndex {
+    pub fn with(index: u8) -> AppDeriveIndex {
+        if index >= 10 && index < 20 {
+            AppDeriveIndex::HighFrequency
+        } else if index >= 20 && index < 30 {
+            AppDeriveIndex::Frequent
+        } else if index >= 30 && index < 40 {
+            AppDeriveIndex::Regular
+        } else if index >= 40 && index < 50 {
+            AppDeriveIndex::Episodic
+        } else if index >= 50 && index < 60 {
+            AppDeriveIndex::Seldom
+        } else {
+            AppDeriveIndex::Any
+        }
+    }
+}

@@ -40,7 +40,8 @@ use crate::RgbInvoice;
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
 pub enum PayError<E1: Error, E2: Error>
-where E1: From<E2>
+where
+    E1: From<E2>,
 {
     /// not enough PSBT output found to put all required state (can't add
     /// assignment {1} for {0}-velocity state).
@@ -146,7 +147,7 @@ pub trait InventoryWallet: Inventory {
                 .copied()
                 .map(u32::from)
                 .and_then(|index| u8::try_from(index).ok())
-                .and_then(|index| AppDeriveIndex::try_from(index).ok())
+                .and_then(|index| Some(AppDeriveIndex::with(index)))
             {
                 out_classes.entry(class).or_default().push(no as u32);
             }
