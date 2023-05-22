@@ -161,7 +161,13 @@ pub trait InventoryWallet: Inventory {
             let velocity = suppl
                 .and_then(|suppl| suppl.owned_state.get(&assignment_type))
                 .map(|s| s.app_index)
-                .unwrap_or_default();
+                .unwrap_or(
+                    out_classes
+                        .keys()
+                        .map(|a| a.to_owned())
+                        .collect::<Vec<AppDeriveIndex>>()[0],
+                );
+
             let vout = out_classes
                 .get_mut(&velocity)
                 .and_then(|iter| iter.next())
