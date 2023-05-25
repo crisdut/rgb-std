@@ -20,15 +20,12 @@
 // limitations under the License.
 
 #![allow(unused_braces)]
-
-use std::fmt::{self, Debug, Formatter};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::str::FromStr;
 
 use amplify::ascii::AsciiString;
-use amplify::confinement::{Confined, NonEmptyVec};
-use strict_encoding::{
-    InvalidIdent, StrictDeserialize, StrictDumb, StrictEncode, StrictSerialize, TypedWrite,
-};
+use amplify::confinement::Confined;
+use strict_encoding::{InvalidIdent, StrictDeserialize, StrictDumb, StrictEncode, StrictSerialize};
 
 use crate::interface::LIB_NAME_RGB21;
 
@@ -44,7 +41,9 @@ pub struct MediaType {
     pub charset: Option<MediaRegName>,
 }
 impl StrictDumb for MediaType {
-    fn strict_dumb() -> Self { MediaType::with("text/plain") }
+    fn strict_dumb() -> Self {
+        MediaType::with("text/plain")
+    }
 }
 impl StrictSerialize for MediaType {}
 impl StrictDeserialize for MediaType {}
@@ -67,9 +66,19 @@ impl MediaType {
     }
 }
 
+impl Display for MediaType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.ty, f)?;
+        if let Some(subty) = &self.subtype {
+            write!(f, "/{subty}")?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Wrapper, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, From)]
 #[wrapper(Deref, Display)]
-#[derive(StrictType, StrictDumb, StrictDecode)]
+#[derive(StrictType, StrictDumb, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_RGB21, dumb = { MediaRegName::from("dumb") })]
 #[cfg_attr(
     feature = "serde",
@@ -77,13 +86,6 @@ impl MediaType {
     serde(crate = "serde_crate", transparent)
 )]
 pub struct MediaRegName(Confined<AsciiString, 1, 64>);
-impl StrictEncode for MediaRegName {
-    fn strict_encode<W: TypedWrite>(&self, writer: W) -> std::io::Result<W> {
-        writer.write_newtype::<Self>(
-            &NonEmptyVec::<MimeChar, 64>::try_from_iter([MimeChar::strict_dumb()]).unwrap(),
-        )
-    }
-}
 
 impl StrictSerialize for MediaRegName {}
 impl StrictDeserialize for MediaRegName {}
@@ -100,7 +102,9 @@ impl FromStr for MediaRegName {
 }
 
 impl From<&'static str> for MediaRegName {
-    fn from(s: &'static str) -> Self { Self::from_str(s).expect("invalid media-reg name") }
+    fn from(s: &'static str) -> Self {
+        Self::from_str(s).expect("invalid media-reg name")
+    }
 }
 
 impl TryFrom<String> for MediaRegName {
