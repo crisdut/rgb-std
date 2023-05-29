@@ -30,8 +30,10 @@ use bp::Outpoint;
 use chrono::Utc;
 use rgb::{AssignmentType, ContractId, GraphSeal, Operation, Opout};
 use rgbstd::containers::{Bindle, BuilderSeal, Transfer};
+use rgbstd::interface::rgb21::{Allocation, TokenIndex};
 use rgbstd::interface::{AppDeriveIndex, BuilderError, ContractSuppl, TypedState};
 use rgbstd::persistence::{ConsignerError, Inventory, InventoryError, Stash};
+use strict_encoding::StrictDeserialize;
 
 use crate::invoice::Beneficiary;
 use crate::psbt::{DbcPsbtError, PsbtDbc, RgbExt, RgbInExt, RgbPsbtError};
@@ -40,8 +42,7 @@ use crate::RgbInvoice;
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
 pub enum PayError<E1: Error, E2: Error>
-where
-    E1: From<E2>,
+where E1: From<E2>
 {
     /// not enough PSBT output found to put all required state (can't add
     /// assignment {1} for {0}-velocity state).
@@ -197,7 +198,9 @@ pub trait InventoryWallet: Inventory {
         let mut sum_inputs = 0u64;
         let mut type_state = TypedState::Void;
 
-        for (opout, state) in self.state_for_outpoints(contract_id, prev_outputs.iter().copied())? {
+        let state_outpoints =
+            self.state_for_outpoints(contract_id, prev_outputs.iter().copied())?;
+        for (opout, state) in state_outpoints.clone() {
             main_builder = main_builder.add_input(opout)?;
             if opout.ty != assignment_id {
                 let seal = output_for_assignment(suppl.as_ref(), opout.ty)?;
@@ -210,6 +213,22 @@ pub trait InventoryWallet: Inventory {
                 sum_inputs += 1;
             }
         }
+
+        // Check Unknown Query
+        if let Some(token_index) = invoice.unknown_query.get("token_index") {
+            let token_index: u32 = token_index.parse().expect("");
+            let token_index = TokenIndex::from(token_index);
+            for (_, state) in state_outpoints.clone() {
+                if let TypedState::Data(data) = state.clone() {
+                    let alloc = Allocation::from_strict_serialized(data.into()).expect("msg");
+                    if token_index == alloc.token_id() {
+                        type_state = state;
+                        break;
+                    }
+                }
+            }
+        };
+
         // Add change
         let transition = match invoice.owned_state {
             TypedState::Amount(amt) => {
@@ -231,7 +250,7 @@ pub trait InventoryWallet: Inventory {
                         .add_raw_state(assignment_id, beneficiary, type_state)?
                         .complete_transition(contract_id)?,
                     _ => {
-                        todo!("only TypedState::Amount and TypedState::Data is currently supported")
+                        todo!("only Amount and Data TypedState are currently supported")
                     }
                 }
             }
