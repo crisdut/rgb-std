@@ -41,9 +41,7 @@ pub struct MediaType {
     pub charset: Option<MediaRegName>,
 }
 impl StrictDumb for MediaType {
-    fn strict_dumb() -> Self {
-        MediaType::with("text/plain")
-    }
+    fn strict_dumb() -> Self { MediaType::with("text/plain") }
 }
 impl StrictSerialize for MediaType {}
 impl StrictDeserialize for MediaType {}
@@ -102,9 +100,7 @@ impl FromStr for MediaRegName {
 }
 
 impl From<&'static str> for MediaRegName {
-    fn from(s: &'static str) -> Self {
-        Self::from_str(s).expect("invalid media-reg name")
-    }
+    fn from(s: &'static str) -> Self { Self::from_str(s).expect("invalid media-reg name") }
 }
 
 impl TryFrom<String> for MediaRegName {
