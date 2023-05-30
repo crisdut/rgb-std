@@ -302,8 +302,7 @@ pub struct OperationBuilder<Seal: ExposedSeal> {
     // rights: TinyOrdMap<AssignmentType, Confined<HashSet<BuilderSeal<Seal>>, 1, U8>>,
     fungible:
         TinyOrdMap<AssignmentType, Confined<HashMap<BuilderSeal<Seal>, RevealedValue>, 1, U8>>,
-    data:
-        TinyOrdMap<AssignmentType, Confined<HashMap<BuilderSeal<Seal>, Vec<RevealedData>>, 1, U8>>,
+    data: TinyOrdMap<AssignmentType, Confined<HashMap<BuilderSeal<Seal>, RevealedData>, 1, U8>>,
     // TODO: add attachments
     // TODO: add valencies
 }
@@ -416,16 +415,11 @@ impl<Seal: ExposedSeal> OperationBuilder<Seal> {
             let state = RevealedData::from(serialized);
             match self.data.get_mut(&type_id) {
                 Some(assignments) => {
-                    let seal = seal.into();
-                    if let Some(states) = assignments.get(&seal) {
-                        let mut states = states.to_owned();
-                        states.push(state);
-                        assignments.insert(seal.into(), states.to_owned())?;
-                    }
+                    assignments.insert(seal.into(), state)?;
                 }
                 None => {
                     self.data
-                        .insert(type_id, Confined::with((seal.into(), vec![state])))?;
+                        .insert(type_id, Confined::with((seal.into(), state)))?;
                 }
             }
         } else {
@@ -459,16 +453,11 @@ impl<Seal: ExposedSeal> OperationBuilder<Seal> {
             }
             TypedState::Data(state) => match self.data.get_mut(&type_id) {
                 Some(assignments) => {
-                    let seal = seal.into();
-                    if let Some(states) = assignments.get(&seal) {
-                        let mut states = states.to_owned();
-                        states.push(state);
-                        assignments.insert(seal.into(), states.to_owned())?;
-                    }
+                    assignments.insert(seal.into(), state.into())?;
                 }
                 None => {
                     self.data
-                        .insert(type_id, Confined::with((seal.into(), vec![state])))?;
+                        .insert(type_id, Confined::with((seal.into(), state)))?;
                 }
             },
             TypedState::Attachment(_) => {
@@ -489,20 +478,11 @@ impl<Seal: ExposedSeal> OperationBuilder<Seal> {
             (id, state)
         });
         let owned_state_data = self.data.into_iter().map(|(id, vec)| {
-            let mut assigs = vec![];
-            vec.into_iter().for_each(|(seal, value)| match seal {
-                BuilderSeal::Revealed(seal) => {
-                    for val in value {
-                        assigs.push(Assign::Revealed { seal, state: val })
-                    }
-                }
-                BuilderSeal::Concealed(seal) => {
-                    for val in value {
-                        assigs.push(Assign::ConfidentialSeal { seal, state: val })
-                    }
-                }
+            let vec_data = vec.into_iter().map(|(seal, value)| match seal {
+                BuilderSeal::Revealed(seal) => Assign::Revealed { seal, state: value },
+                BuilderSeal::Concealed(seal) => Assign::ConfidentialSeal { seal, state: value },
             });
-            let state_data = Confined::try_from_iter(assigs).expect("at least one element");
+            let state_data = Confined::try_from_iter(vec_data).expect("at least one element");
             let state_data = TypedAssigns::Structured(state_data);
             (id, state_data)
         });
