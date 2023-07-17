@@ -36,7 +36,7 @@ use rgbstd::persistence::{ConsignerError, Inventory, InventoryError, Stash};
 
 use crate::invoice::Beneficiary;
 use crate::psbt::{DbcPsbtError, PsbtDbc, RgbExt, RgbInExt, RgbOutExt, RgbPsbtError};
-use crate::{RgbInvoice, RGB_NATIVE_DERIVATION_INDEX, RGB_TAPRET_DERIVATION_INDEX};
+use crate::RgbInvoice;
 
 #[derive(Debug, Display, Error, From)]
 #[display(inner)]
@@ -150,7 +150,7 @@ pub trait InventoryWallet: Inventory {
                 .and_then(|(_, src)| src.1.into_iter().rev().nth(1))
                 .copied()
                 .map(u32::from)
-                .filter(|index| *index == RGB_NATIVE_DERIVATION_INDEX || *index == RGB_TAPRET_DERIVATION_INDEX)
+                // .filter(|index| *index == RGB_NATIVE_DERIVATION_INDEX || *index == RGB_TAPRET_DERIVATION_INDEX)
                 .is_some()
             {
                 let class = outp.rgb_velocity_hint().unwrap_or_default();
