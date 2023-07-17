@@ -404,7 +404,7 @@ impl<Seal: ExposedSeal> OperationBuilder<Seal> {
         value: impl StrictSerialize,
     ) -> Result<Self, BuilderError> {
         let name = name.into();
-        let serialized = value.to_strict_serialized::<{ u16::MAX as usize }>()?;
+        let serialized = value.to_strict_serialized::<U16>()?;
 
         // Check value matches type requirements
         let Some(type_id) = self
@@ -515,7 +515,7 @@ impl<Seal: ExposedSeal> OperationBuilder<Seal> {
         let mut assignments = Assignments::from_inner(owned_state);
         assignments
             .extend(Assignments::from_inner(owned_state_data).into_inner())
-            .expect("");
+            .expect("same size");
 
         let iface_pair = IfacePair::with(self.iface, self.iimpl);
 

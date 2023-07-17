@@ -35,10 +35,10 @@ use strict_encoding::{
 use strict_types::stl::std_stl;
 use strict_types::{CompileError, LibBuilder, TypeLib};
 
-use super::{
-    AssignIface, GenesisIface, GlobalIface, Iface, OwnedIface, Req, TransitionIface, VerNo,
+use crate::interface::{
+    ArgSpec, AssignIface, ContractIface, GenesisIface, GlobalIface, Iface, OwnedIface, Req,
+    TransitionIface, VerNo,
 };
-use crate::interface::{ArgSpec, ContractIface};
 use crate::stl::{
     rgb_contract_stl, Attachment, Details, DivisibleAssetSpec, MediaType, Name, ProofOfReserves,
     StandardTypes, Ticker,
@@ -100,6 +100,9 @@ impl Allocation {
     pub fn with(index: TokenIndex, fraction: OwnedFraction) -> Allocation {
         Allocation(index, fraction)
     }
+
+    pub fn token_id(self) -> TokenIndex { self.0 }
+    pub fn fraction(self) -> OwnedFraction { self.1 }
 }
 
 impl StrictSerialize for Allocation {}
@@ -155,6 +158,9 @@ impl AttachmentType {
     }
 }
 
+impl StrictSerialize for AttachmentType {}
+impl StrictDeserialize for AttachmentType {}
+
 #[derive(Wrapper, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, From)]
 #[wrapper(Deref, Display)]
 #[derive(StrictType, StrictDumb, StrictDecode)]
@@ -165,6 +171,9 @@ impl AttachmentType {
     serde(crate = "serde_crate", transparent)
 )]
 pub struct AttachmentName(Confined<AsciiString, 1, 20>);
+impl StrictSerialize for AttachmentName {}
+impl StrictDeserialize for AttachmentName {}
+
 impl StrictEncode for AttachmentName {
     fn strict_encode<W: TypedWrite>(&self, writer: W) -> std::io::Result<W> {
         writer.write_newtype::<Self>(

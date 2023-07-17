@@ -22,7 +22,7 @@
 use amplify::confinement::SmallOrdSet;
 use bp::Tx;
 
-use super::TerminalSeal;
+use crate::containers::TerminalSeal;
 use crate::LIB_NAME_RGB_STD;
 
 #[derive(Clone, Eq, PartialEq, Debug)]

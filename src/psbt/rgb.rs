@@ -34,9 +34,9 @@ use rgbstd::accessors::{MergeReveal, MergeRevealError};
 use rgbstd::interface::VelocityHint;
 use strict_encoding::{SerializeError, StrictDeserialize, StrictSerialize};
 
-use super::lnpbp4::OutputLnpbp4;
-use super::opret::OutputOpret;
-use super::tapret::OutputTapret;
+use crate::psbt::lnpbp4::OutputLnpbp4;
+use crate::psbt::opret::OutputOpret;
+use crate::psbt::tapret::OutputTapret;
 
 // TODO: Instead of storing whole RGB contract in PSBT create a shortened
 //       contract version which skips all info not important for hardware

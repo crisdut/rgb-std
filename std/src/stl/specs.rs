@@ -454,8 +454,9 @@ impl DivisibleAssetSpec {
     pub fn details(&self) -> Option<&str> { self.naming.details.as_ref().map(|d| d.as_str()) }
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Default)]
-#[derive(StrictType, StrictEncode, StrictDecode)]
+#[derive(Wrapper, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, From, Debug)]
+#[wrapper(Deref, Display)]
+#[derive(StrictDumb, StrictType, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_RGB_CONTRACT)]
 #[cfg_attr(
     feature = "serde",
@@ -472,6 +473,13 @@ impl FromStr for RicardianContract {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = Confined::try_from_iter(s.chars())?;
         Ok(Self(s))
+    }
+}
+
+impl RicardianContract {
+    pub fn from_strict_val_unchecked(value: &StrictVal) -> Self {
+        let s = value.unwrap_struct("terms").unwrap_string();
+        RicardianContract::from_str(&s).expect("invalid term data")
     }
 }
 
