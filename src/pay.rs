@@ -190,7 +190,9 @@ pub trait InventoryWallet: Inventory {
             .contract_suppl(contract_id)
             .and_then(|set| set.first())
             .cloned();
+
         let mut sum_inputs = 0u64;
+        let mut type_state = TypedState::Void;
         for (opout, state) in self.state_for_outpoints(contract_id, prev_outputs.iter().copied())? {
             main_builder = main_builder.add_input(opout)?;
             if opout.ty != assignment_id {
@@ -198,26 +200,39 @@ pub trait InventoryWallet: Inventory {
                 main_builder = main_builder.add_raw_state(opout.ty, seal, state)?;
             } else if let TypedState::Amount(value) = state {
                 sum_inputs += value;
+                type_state = state;
+            } else if let TypedState::Data(_) = state {
+                sum_inputs += 1;
+                type_state = state;
             }
         }
         // Add change
-        let transition = match invoice.owned_state {
-            TypedState::Amount(amt) => {
-                match sum_inputs.cmp(&amt) {
-                    Ordering::Greater => {
-                        let seal = output_for_assignment(suppl.as_ref(), assignment_id)?;
-                        let change = TypedState::Amount(sum_inputs - amt);
-                        main_builder = main_builder.add_raw_state(assignment_id, seal, change)?;
-                    }
-                    Ordering::Less => return Err(PayError::InsufficientState),
-                    Ordering::Equal => {}
+        let amt = match invoice.owned_state {
+            TypedState::Amount(amt) => match sum_inputs.cmp(&amt) {
+                Ordering::Greater => {
+                    let seal = output_for_assignment(suppl.as_ref(), assignment_id)?;
+                    let change = TypedState::Amount(sum_inputs - amt);
+                    main_builder = main_builder.add_raw_state(assignment_id, seal, change)?;
+                    amt
                 }
-                main_builder
-                    .add_raw_state(assignment_id, beneficiary, TypedState::Amount(amt))?
-                    .complete_transition(contract_id)?
-            }
+                Ordering::Equal => amt,
+                Ordering::Less => return Err(PayError::InsufficientState),
+            },
             _ => {
                 todo!("only TypedState::Amount is currently supported")
+            }
+        };
+
+        // Finish Transaction
+        let transition = match type_state {
+            TypedState::Amount(_) => main_builder
+                .add_raw_state(assignment_id, beneficiary, TypedState::Amount(amt))?
+                .complete_transition(contract_id)?,
+            TypedState::Data(_) => main_builder
+                .add_raw_state(assignment_id, beneficiary, type_state)?
+                .complete_transition(contract_id)?,
+            _ => {
+                todo!("only TypedState::Amount and TypedState::Data are currently supported")
             }
         };
 
