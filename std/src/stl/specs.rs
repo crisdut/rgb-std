@@ -83,9 +83,13 @@ impl StrictSerialize for Amount {}
 impl StrictDeserialize for Amount {}
 
 impl Amount {
-    pub fn zero() -> Self { Amount(0) }
+    pub fn zero() -> Self {
+        Amount(0)
+    }
 
-    pub fn one() -> Self { Amount(1) }
+    pub fn one() -> Self {
+        Amount(1)
+    }
 
     pub fn from_strict_val_unchecked(value: &StrictVal) -> Self {
         value.unwrap_uint::<u64>().into()
@@ -133,7 +137,9 @@ impl StrictSerialize for Precision {}
 impl StrictDeserialize for Precision {}
 
 impl Precision {
-    pub fn from_strict_val_unchecked(value: &StrictVal) -> Self { value.unwrap_enum() }
+    pub fn from_strict_val_unchecked(value: &StrictVal) -> Self {
+        value.unwrap_enum()
+    }
 }
 
 #[derive(Wrapper, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, From)]
@@ -170,7 +176,9 @@ impl FromStr for Ticker {
 }
 
 impl From<&'static str> for Ticker {
-    fn from(s: &'static str) -> Self { Self::from_str(s).expect("invalid ticker name") }
+    fn from(s: &'static str) -> Self {
+        Self::from_str(s).expect("invalid ticker name")
+    }
 }
 
 impl TryFrom<String> for Ticker {
@@ -239,7 +247,9 @@ impl Name {
 }
 
 impl StrictDumb for Name {
-    fn strict_dumb() -> Self { Name::from("Dumb contract name") }
+    fn strict_dumb() -> Self {
+        Name::from("Dumb contract name")
+    }
 }
 
 // TODO: Ensure all constructors filter invalid characters
@@ -273,7 +283,9 @@ impl TryFrom<AsciiString> for Name {
 }
 
 impl From<&'static str> for Name {
-    fn from(s: &'static str) -> Self { Self::from_str(s).expect("invalid ticker name") }
+    fn from(s: &'static str) -> Self {
+        Self::from_str(s).expect("invalid ticker name")
+    }
 }
 
 impl TryFrom<String> for Name {
@@ -326,7 +338,9 @@ impl FromStr for Details {
 }
 
 impl From<&'static str> for Details {
-    fn from(s: &'static str) -> Self { Self::from_str(s).expect("invalid ticker name") }
+    fn from(s: &'static str) -> Self {
+        Self::from_str(s).expect("invalid ticker name")
+    }
 }
 
 impl TryFrom<String> for Details {
@@ -447,11 +461,17 @@ impl DivisibleAssetSpec {
         Self { naming, precision }
     }
 
-    pub fn ticker(&self) -> &str { self.naming.ticker.as_str() }
+    pub fn ticker(&self) -> &str {
+        self.naming.ticker.as_str()
+    }
 
-    pub fn name(&self) -> &str { self.naming.name.as_str() }
+    pub fn name(&self) -> &str {
+        self.naming.name.as_str()
+    }
 
-    pub fn details(&self) -> Option<&str> { self.naming.details.as_ref().map(|d| d.as_str()) }
+    pub fn details(&self) -> Option<&str> {
+        self.naming.details.as_ref().map(|d| d.as_str())
+    }
 }
 
 #[derive(Wrapper, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, From, Debug)]
@@ -478,7 +498,7 @@ impl FromStr for RicardianContract {
 
 impl RicardianContract {
     pub fn from_strict_val_unchecked(value: &StrictVal) -> Self {
-        let s = value.unwrap_struct("terms").unwrap_string();
+        let s = value.unwrap_string();
         RicardianContract::from_str(&s).expect("invalid term data")
     }
 }
