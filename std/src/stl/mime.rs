@@ -112,9 +112,16 @@ impl std::fmt::Display for MediaType {
 )]
 pub struct MediaRegName(Confined<AsciiString, 1, 64>);
 impl StrictEncode for MediaRegName {
+    
     fn strict_encode<W: TypedWrite>(&self, writer: W) -> std::io::Result<W> {
+        let iter = self
+            .0
+            .as_bytes()
+            .iter()
+            .map(|c| MimeChar::try_from(*c).unwrap());
         writer.write_newtype::<Self>(
-            &NonEmptyVec::<MimeChar, 64>::try_from_iter([MimeChar::strict_dumb()]).unwrap(),
+            &NonEmptyVec::<MimeChar, 64>::try_from_iter(iter)
+                .unwrap(),
         )
     }
 }

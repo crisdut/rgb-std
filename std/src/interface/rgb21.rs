@@ -176,8 +176,13 @@ impl StrictDeserialize for AttachmentName {}
 
 impl StrictEncode for AttachmentName {
     fn strict_encode<W: TypedWrite>(&self, writer: W) -> std::io::Result<W> {
+        let iter = self
+            .0
+            .as_bytes()
+            .iter()
+            .map(|c| AsciiPrintable::try_from(*c).unwrap());
         writer.write_newtype::<Self>(
-            &NonEmptyVec::<AsciiPrintable, 20>::try_from_iter([AsciiPrintable::strict_dumb()])
+            &NonEmptyVec::<AsciiPrintable, 20>::try_from_iter(iter)
                 .unwrap(),
         )
     }
