@@ -28,11 +28,13 @@ use std::str::FromStr;
 
 use amplify::ascii::AsciiString;
 use amplify::confinement::{Confined, NonEmptyString, NonEmptyVec, SmallOrdSet, SmallString, U8};
+use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use strict_encoding::stl::{AlphaCapsNum, AsciiPrintable};
 use strict_encoding::{
     InvalidIdent, StrictDeserialize, StrictDumb, StrictEncode, StrictSerialize, StrictType,
     TypedWrite,
 };
+use strict_types::value::StrictNum;
 use strict_types::StrictVal;
 
 use super::{MediaType, ProofOfReserves, LIB_NAME_RGB_CONTRACT};
@@ -83,13 +85,9 @@ impl StrictSerialize for Amount {}
 impl StrictDeserialize for Amount {}
 
 impl Amount {
-    pub fn zero() -> Self {
-        Amount(0)
-    }
+    pub fn zero() -> Self { Amount(0) }
 
-    pub fn one() -> Self {
-        Amount(1)
-    }
+    pub fn one() -> Self { Amount(1) }
 
     pub fn from_strict_val_unchecked(value: &StrictVal) -> Self {
         value.unwrap_uint::<u64>().into()
@@ -102,7 +100,7 @@ impl Sum for Amount {
     }
 }
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Default)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug, Default)]
 #[repr(u8)]
 #[derive(StrictType, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_RGB_CONTRACT, tags = repr, into_u8, try_from_u8)]
@@ -137,8 +135,27 @@ impl StrictSerialize for Precision {}
 impl StrictDeserialize for Precision {}
 
 impl Precision {
-    pub fn from_strict_val_unchecked(value: &StrictVal) -> Self {
-        value.unwrap_enum()
+    pub fn from_strict_val_unchecked(value: &StrictVal) -> Self { value.unwrap_enum() }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Display)]
+#[display("{int}.{fract}")]
+pub struct CoinAmount {
+    pub int: u64,
+    pub fract: u64,
+    pub precision: Precision,
+}
+
+impl CoinAmount {
+    pub fn with(value: u64, precision: Precision) -> Self {
+        let pow = 10_u64.pow(precision as u32);
+        let int = value / pow;
+        let fract = value - int * pow;
+        CoinAmount {
+            int,
+            fract,
+            precision,
+        }
     }
 }
 
@@ -176,9 +193,7 @@ impl FromStr for Ticker {
 }
 
 impl From<&'static str> for Ticker {
-    fn from(s: &'static str) -> Self {
-        Self::from_str(s).expect("invalid ticker name")
-    }
+    fn from(s: &'static str) -> Self { Self::from_str(s).expect("invalid ticker name") }
 }
 
 impl TryFrom<String> for Ticker {
@@ -247,9 +262,7 @@ impl Name {
 }
 
 impl StrictDumb for Name {
-    fn strict_dumb() -> Self {
-        Name::from("Dumb contract name")
-    }
+    fn strict_dumb() -> Self { Name::from("Dumb contract name") }
 }
 
 // TODO: Ensure all constructors filter invalid characters
@@ -283,9 +296,7 @@ impl TryFrom<AsciiString> for Name {
 }
 
 impl From<&'static str> for Name {
-    fn from(s: &'static str) -> Self {
-        Self::from_str(s).expect("invalid ticker name")
-    }
+    fn from(s: &'static str) -> Self { Self::from_str(s).expect("invalid ticker name") }
 }
 
 impl TryFrom<String> for Name {
@@ -338,9 +349,7 @@ impl FromStr for Details {
 }
 
 impl From<&'static str> for Details {
-    fn from(s: &'static str) -> Self {
-        Self::from_str(s).expect("invalid ticker name")
-    }
+    fn from(s: &'static str) -> Self { Self::from_str(s).expect("invalid ticker name") }
 }
 
 impl TryFrom<String> for Details {
@@ -461,17 +470,11 @@ impl DivisibleAssetSpec {
         Self { naming, precision }
     }
 
-    pub fn ticker(&self) -> &str {
-        self.naming.ticker.as_str()
-    }
+    pub fn ticker(&self) -> &str { self.naming.ticker.as_str() }
 
-    pub fn name(&self) -> &str {
-        self.naming.name.as_str()
-    }
+    pub fn name(&self) -> &str { self.naming.name.as_str() }
 
-    pub fn details(&self) -> Option<&str> {
-        self.naming.details.as_ref().map(|d| d.as_str())
-    }
+    pub fn details(&self) -> Option<&str> { self.naming.details.as_ref().map(|d| d.as_str()) }
 }
 
 #[derive(Wrapper, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, From, Debug)]
@@ -507,15 +510,36 @@ impl RicardianContract {
 #[wrapper(Deref, Display, FromStr, MathOps)]
 #[wrapper_mut(DerefMut, MathAssign)]
 #[derive(StrictType, StrictEncode, StrictDecode)]
-#[strict_type(lib = LIB_NAME_RGB_CONTRACT)]
+#[strict_type(lib = LIB_NAME_RGB_CONTRACT, dumb = Timestamp::start_of_epoch())]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
     serde(crate = "serde_crate", transparent)
 )]
-pub struct Timestamp(i32);
+pub struct Timestamp(i64);
 impl StrictSerialize for Timestamp {}
 impl StrictDeserialize for Timestamp {}
+
+impl Timestamp {
+    pub fn start_of_epoch() -> Self { Timestamp(0) }
+
+    pub fn now() -> Self { Timestamp(Local::now().timestamp()) }
+
+    pub fn to_utc(self) -> Option<DateTime<Utc>> {
+        NaiveDateTime::from_timestamp_opt(self.0, 0)
+            .map(|naive| DateTime::<Utc>::from_utc(naive, Utc))
+    }
+
+    pub fn to_local(self) -> Option<DateTime<Local>> { self.to_utc().map(DateTime::<Local>::from) }
+
+    pub fn from_strict_val_unchecked(value: &StrictVal) -> Self {
+        // TODO: Move this logic to strict_types StrictVal::unwrap_int method
+        let StrictVal::Number(StrictNum::Int(val)) = value.skip_wrapper() else {
+            panic!("required integer number");
+        };
+        Self(*val as i64)
+    }
+}
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 #[derive(StrictType, StrictDumb, StrictEncode, StrictDecode)]
@@ -570,5 +594,18 @@ impl ContractData {
             .unwrap_option()
             .map(Attachment::from_strict_val_unchecked);
         Self { terms, media }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn coin_amount() {
+        let amount = CoinAmount::with(10_000_436_081_95, Precision::default());
+        assert_eq!(amount.int, 10_000);
+        assert_eq!(amount.fract, 436_081_95);
+        assert_eq!(format!("{amount}"), "10000.43608195");
     }
 }
