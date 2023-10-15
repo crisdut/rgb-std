@@ -24,7 +24,7 @@ use std::convert::Infallible;
 use std::ops::{Deref, DerefMut};
 
 use amplify::confinement::{MediumOrdMap, MediumOrdSet, TinyOrdMap};
-use amplify::RawArray;
+use amplify::ByteArray;
 use bp::dbc::Anchor;
 use bp::Txid;
 use commit_verify::mpc::MerkleBlock;
@@ -53,8 +53,8 @@ use crate::{Outpoint, LIB_NAME_RGB_STD};
 #[strict_type(lib = LIB_NAME_RGB_STD)]
 pub struct IndexedBundle(ContractId, BundleId);
 
-#[derive(Clone, Debug)]
-#[derive(StrictType, StrictDumb, StrictEncode, StrictDecode)]
+#[derive(Clone, Debug, Default)]
+#[derive(StrictType, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_RGB_STD)]
 pub struct ContractIndex {
     public_opouts: MediumOrdSet<Opout>,
@@ -173,10 +173,9 @@ impl Stock {
         self.history.insert(id, history)?;
 
         let contract_id = consignment.contract_id();
-        self.contract_index.insert(contract_id, ContractIndex {
-            public_opouts: empty!(),
-            outpoint_opouts: empty!(),
-        })?;
+        if !self.contract_index.contains_key(&contract_id) {
+            self.contract_index.insert(contract_id, empty!())?;
+        }
         self.index_genesis(contract_id, &consignment.genesis)?;
         for extension in &consignment.extensions {
             self.index_extension(contract_id, extension)?;
@@ -499,7 +498,7 @@ impl Inventory for Stock {
         let anchor_id = anchor.anchor_id();
         for (_, bundle_id) in anchor.mpc_proof.to_known_message_map() {
             self.anchor_bundle_index
-                .insert(bundle_id.to_raw_array().into(), anchor_id)?;
+                .insert(bundle_id.to_byte_array().into(), anchor_id)?;
         }
         self.hoard.consume_anchor(anchor)?;
         Ok(())

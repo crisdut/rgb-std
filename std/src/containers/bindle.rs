@@ -30,9 +30,9 @@ use std::str::FromStr;
 
 #[cfg(feature = "fs")]
 pub use _fs::*;
+use amplify::confinement;
 use amplify::confinement::{Confined, TinyVec, U24};
 use baid58::Baid58ParseError;
-use base64::Engine;
 use rgb::{BundleId, ContractId, Schema, SchemaId, SchemaRoot};
 use strict_encoding::{
     StrictDecode, StrictDeserialize, StrictDumb, StrictEncode, StrictSerialize, StrictType,
@@ -63,6 +63,7 @@ pub trait BindleContent: StrictSerialize + StrictDeserialize + StrictDumb {
     fn bindle_id(&self) -> Self::Id;
     fn bindle_headers(&self) -> BTreeMap<&'static str, String> { none!() }
     fn bindle(self) -> Bindle<Self> { Bindle::new(self) }
+    fn bindle_mnemonic(&self) -> Option<String> { None }
 }
 
 impl<Root: SchemaRoot> BindleContent for Schema<Root> {
@@ -70,6 +71,7 @@ impl<Root: SchemaRoot> BindleContent for Schema<Root> {
     const PLATE_TITLE: &'static str = "RGB SCHEMA";
     type Id = SchemaId;
     fn bindle_id(&self) -> Self::Id { self.schema_id() }
+    fn bindle_mnemonic(&self) -> Option<String> { Some(self.schema_id().to_mnemonic()) }
 }
 
 impl BindleContent for Contract {
@@ -94,6 +96,7 @@ impl BindleContent for Transfer {
     const PLATE_TITLE: &'static str = "RGB STATE TRANSFER";
     type Id = TransferId;
     fn bindle_id(&self) -> Self::Id { self.transfer_id() }
+    fn bindle_mnemonic(&self) -> Option<String> { Some(self.transfer_id().to_mnemonic()) }
     fn bindle_headers(&self) -> BTreeMap<&'static str, String> {
         bmap! {
             "Version" => self.version.to_string(),
@@ -112,6 +115,7 @@ impl BindleContent for Iface {
     const PLATE_TITLE: &'static str = "RGB INTERFACE";
     type Id = IfaceId;
     fn bindle_id(&self) -> Self::Id { self.iface_id() }
+    fn bindle_mnemonic(&self) -> Option<String> { Some(self.iface_id().to_mnemonic()) }
     fn bindle_headers(&self) -> BTreeMap<&'static str, String> {
         bmap! {
             "Name" => self.name.to_string()
@@ -124,10 +128,11 @@ impl BindleContent for IfaceImpl {
     const PLATE_TITLE: &'static str = "RGB INTERFACE IMPLEMENTATION";
     type Id = ImplId;
     fn bindle_id(&self) -> Self::Id { self.impl_id() }
+    fn bindle_mnemonic(&self) -> Option<String> { Some(self.impl_id().to_mnemonic()) }
     fn bindle_headers(&self) -> BTreeMap<&'static str, String> {
         bmap! {
-            "IfaceId" => self.iface_id.to_string(),
-            "SchemaId" => self.schema_id.to_string(),
+            "IfaceId" => format!("{:-#}", self.iface_id),
+            "SchemaId" => format!("{:-#}", self.schema_id),
         }
     }
 }
@@ -170,7 +175,7 @@ impl<C: BindleContent> Bindle<C> {
     pub fn unbindle(self) -> C { self.data }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Display, Error)]
+#[derive(Clone, PartialEq, Eq, Debug, Display, Error, From)]
 #[display(doc_comments)]
 pub enum BindleParseError<Id: Copy + Eq + Debug + Display> {
     /// the provided text doesn't represent a recognizable ASCII-armored RGB
@@ -187,13 +192,16 @@ pub enum BindleParseError<Id: Copy + Eq + Debug + Display> {
     /// Expected id: {expected}.
     MismatchedId { actual: Id, expected: Id },
 
-    /// bindle data has invalid Base64 encoding (ASCII armoring). Details: {0}
-    Base64(base64::DecodeError),
+    /// bindle data has invalid Base85 encoding (ASCII armoring).
+    #[from(base85::Error)]
+    Base85,
 
     /// unable to decode the provided bindle data. Details: {0}
+    #[from]
     Deserialize(strict_encoding::DeserializeError),
 
     /// bindle contains more than 16MB of data.
+    #[from(confinement::Error)]
     TooLarge,
 }
 
@@ -217,12 +225,8 @@ impl<C: BindleContent> FromStr for Bindle<C> {
             }
         }
         let armor = lines.filter(|l| !l.is_empty()).collect::<String>();
-        let engine = base64::engine::general_purpose::STANDARD;
-        let data = engine.decode(armor).map_err(BindleParseError::Base64)?;
-        let data = C::from_strict_serialized::<U24>(
-            Confined::try_from(data).map_err(|_| BindleParseError::TooLarge)?,
-        )
-        .map_err(BindleParseError::Deserialize)?;
+        let data = base85::decode(&armor)?;
+        let data = C::from_strict_serialized::<U24>(Confined::try_from(data)?)?;
         let id = data.bindle_id();
         if let Some(header_id) = header_id {
             if header_id != id {
@@ -232,6 +236,7 @@ impl<C: BindleContent> FromStr for Bindle<C> {
                 });
             }
         }
+        // TODO: check mnemonic
         // TODO: parse and validate sigs
         Ok(Self {
             id,
@@ -244,7 +249,10 @@ impl<C: BindleContent> FromStr for Bindle<C> {
 impl<C: BindleContent> Display for Bindle<C> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         writeln!(f, "-----BEGIN {}-----", C::PLATE_TITLE)?;
-        writeln!(f, "Id: {:-}", self.id)?;
+        writeln!(f, "Id: {:-#}", self.id)?;
+        if let Some(mnemonic) = self.bindle_mnemonic() {
+            writeln!(f, "Mnemonic: {}", mnemonic)?;
+        }
         for (header, value) in self.bindle_headers() {
             writeln!(f, "{header}: {value}")?;
         }
@@ -255,8 +263,7 @@ impl<C: BindleContent> Display for Bindle<C> {
 
         // TODO: Replace with streamed writer
         let data = self.data.to_strict_serialized::<U24>().expect("in-memory");
-        let engine = base64::engine::general_purpose::STANDARD;
-        let data = engine.encode(data);
+        let data = base85::encode(&data);
         let mut data = data.as_str();
         while data.len() >= 64 {
             let (line, rest) = data.split_at(64);
