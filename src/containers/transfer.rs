@@ -21,13 +21,15 @@
 
 use std::str::FromStr;
 
-use amplify::confinement::{LargeOrdSet, SmallOrdSet, TinyOrdSet};
+use amplify::confinement::{Confined, SmallOrdSet};
 use amplify::{ByteArray, Bytes32};
 use baid58::{Baid58ParseError, Chunking, FromBaid58, ToBaid58, CHUNKING_32};
-use commit_verify::{CommitEncode, CommitEngine, CommitId, CommitmentId, DigestExt, Sha256};
-use rgb::{Extension, Operation};
+use commit_verify::{
+    CommitEncode, CommitEngine, CommitId, CommitmentId, Conceal, DigestExt, Sha256,
+};
 
-use super::Transfer;
+use crate::containers::seal::SecretSealSet;
+use crate::containers::Transfer;
 use crate::LIB_NAME_RGB_STD;
 
 /// Transfer identifier.
@@ -76,27 +78,27 @@ impl CommitEncode for Transfer {
     type CommitmentId = TransferId;
 
     fn commit_encode(&self, e: &mut CommitEngine) {
-        e.commit_to(&self.version);
         e.commit_to(&self.transfer);
 
         e.commit_to(&self.contract_id());
         e.commit_to(&self.genesis.disclose_hash());
-        e.commit_to(&TinyOrdSet::from_iter_unsafe(
-            self.ifaces.values().map(|pair| pair.iimpl.impl_id()),
-        ));
+        for (bundle_id, terminal) in &self.terminals {
+            e.commit_to(&bundle_id);
+            let seals = SmallOrdSet::from_iter_unsafe(
+                terminal
+                    .seals
+                    .iter()
+                    .map(|s| s.as_reduced_unsafe().conceal()),
+            );
 
-        e.commit_to(&LargeOrdSet::from_iter_unsafe(
-            self.bundles.iter().map(|ab| ab.bundle.disclose_hash()),
-        ));
-        e.commit_to(&LargeOrdSet::from_iter_unsafe(
-            self.extensions.iter().map(Extension::disclose_hash),
-        ));
-        e.commit_to(&SmallOrdSet::from_iter_unsafe(self.terminals_disclose()));
-
-        e.commit_to(&SmallOrdSet::from_iter_unsafe(self.attachments.keys().copied()));
-        e.commit_to(&self.supplements);
-        e.commit_to(&self.asset_tags);
-        e.commit_to(&self.signatures);
+            let seals: SecretSealSet = Confined::try_from(seals.into_inner())
+                .expect("invalid secret seals")
+                .into();
+            e.commit_to(&seals);
+        }
+        for attach_id in self.attachments.keys() {
+            e.commit_to(attach_id);
+        }
     }
 }
 
