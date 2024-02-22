@@ -254,7 +254,7 @@ impl<C: BindleContent> FromStr for Bindle<C> {
 impl<C: BindleContent> Display for Bindle<C> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         writeln!(f, "-----BEGIN {}-----", C::PLATE_TITLE)?;
-        writeln!(f, "Id: {:-#}", self.id)?;
+        writeln!(f, "Id: {:-#}", self.bindle_id())?;
         if let Some(mnemonic) = self.bindle_mnemonic() {
             writeln!(f, "Mnemonic: {}", mnemonic)?;
         }
